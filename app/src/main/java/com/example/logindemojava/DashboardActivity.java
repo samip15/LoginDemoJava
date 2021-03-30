@@ -10,17 +10,21 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.facebook.login.LoginManager;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
 import com.google.android.gms.common.api.OptionalPendingResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class DashboardActivity extends AppCompatActivity {
     ImageView img;
     TextView name,email;
     Button logoutBtn;
+    private FirebaseAuth auth = FirebaseAuth.getInstance();
+    private FirebaseUser user = auth.getCurrentUser();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,15 +43,24 @@ public class DashboardActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 FirebaseAuth.getInstance().signOut();
+                LoginManager.getInstance().logOut();
                 startActivity(new Intent(DashboardActivity.this,MainActivity.class));
                 finish();
             }
         });
+        if (user!=null){
+            name.setText(user.getDisplayName());
+            email.setText(user.getEmail());
+            Glide.with(getApplicationContext()).load(user.getPhotoUrl()).into(img);
+        }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-
+        if (user == null){
+            startActivity(new Intent(DashboardActivity.this,MainActivity.class));
+            finish();
+        }
     }
 }
