@@ -35,9 +35,16 @@ public class DashboardActivity extends AppCompatActivity {
         auth = FirebaseAuth.getInstance();
         FirebaseUser user = auth.getCurrentUser();
         if (user!=null){
-            name.setText(user.getDisplayName());
-            email.setText(user.getEmail());
-            Glide.with(getApplicationContext()).load(user.getPhotoUrl()).into(img);
+            try {
+                Bundle inBundle = getIntent().getExtras();
+                String nameTxt = inBundle.getString("name").toString();
+                String surName = inBundle.getString("surname").toString();
+                String imageUrl = inBundle.getString("imageUrl").toString();
+                name.setText("" + nameTxt+ " " +surName);
+                Glide.with(getApplicationContext()).load(imageUrl).into(img);
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
         }
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
         if (account!=null){

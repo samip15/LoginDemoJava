@@ -15,9 +15,12 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.facebook.AccessToken;
+import com.facebook.AccessTokenTracker;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
+import com.facebook.Profile;
+import com.facebook.ProfileTracker;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -47,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
     private CallbackManager callbackManager;
     private static final String EMAIL = "email";
     private LoginButton loginButton;
+    private AccessTokenTracker accessTokenTracker;
+    private ProfileTracker profileTracker;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,30 +67,43 @@ public class MainActivity extends AppCompatActivity {
         });
         printHashKey(MainActivity.this);
         callbackManager = CallbackManager.Factory.create();
+        accessTokenTracker = new AccessTokenTracker() {
+            @Override
+            protected void onCurrentAccessTokenChanged(AccessToken oldAccessToken, AccessToken currentAccessToken) {
+
+            }
+        };
+        profileTracker = new ProfileTracker() {
+            @Override
+            protected void onCurrentProfileChanged(Profile oldProfile, Profile newProfile) {
+                openProfileFb(newProfile);
+            }
+        };
+        accessTokenTracker.startTracking();
+        profileTracker.startTracking();
         loginButton = (LoginButton) findViewById(R.id.login_button);
         loginButton.setPermissions(Arrays.asList(EMAIL));
         // If you are using in a fragment, call loginButton.setFragment(this);
-
         // Callback registration
-        loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
+        FacebookCallback<LoginResult> callback = new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
-                // App code
-                Log.d(TAG,"facebook:onSuccess:"+loginResult);
-                handleFacebookAccessToken(loginResult.getAccessToken());
+                   Profile profile = Profile.getCurrentProfile();
+                   openProfileFb(profile);
             }
 
             @Override
             public void onCancel() {
-                // App code
+
             }
 
             @Override
-            public void onError(FacebookException exception) {
-                // App code
-                Log.e(TAG,"onError"+exception.getMessage());
+            public void onError(FacebookException error) {
+
             }
-        });
+        };
+        loginButton.setPermissions("email", "public_profile","user_friends");
+        loginButton.registerCallback(callbackManager,callback);
     }
 
     private void processLogin() {
@@ -121,33 +139,21 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
-    private void handleFacebookAccessToken(AccessToken token) {
-        Log.d(TAG, "handleFacebookAccessToken:" + token);
-
-        AuthCredential credential = FacebookAuthProvider.getCredential(token.getToken());
-        mAuth.signInWithCredential(credential)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            // Sign in success, update UI with the signed-in user's information
-                            Log.e(TAG, "signInWithCredential:success");
-                            FirebaseUser user = mAuth.getCurrentUser();
-                            openProfile();
-                        } else {
-                            // If sign in fails, display a message to the user.
-                            Log.e(TAG, "signInWithCredential:failure", task.getException());
-                            Toast.makeText(MainActivity.this, "Authentication failed.",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
+    private void openProfileFb(Profile profile) {
+        if (profile != null){
+            Bundle b = new Bundle();
+            b.putString("name",profile.getFirstName());
+            b.putString("surname",profile.getLastName());
+            b.putString("imageUrl",profile.getProfilePictureUri(200,200).toString());
+           Intent main = new Intent(MainActivity.this,DashboardActivity.class);
+           main.putExtras(b);
+           startActivity(main);
+        }
     }
 
-    private void openProfile() {
-        startActivity(new Intent(this,DashboardActivity.class));
-        finish();
+    private void openProfileGmail() {
+            Intent main = new Intent(MainActivity.this,DashboardActivity.class);
+            startActivity(main);
     }
 
     private void firebaseAuthWithGoogle(String idToken) {
@@ -158,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
                             // Sign in success, update UI with the signed-in user's information
-                            openProfile();
+                            openProfileGmail();
                         } else {
                             // If sign in fails, display a message to the user.
                             Toast.makeText(MainActivity.this, "problem found in firebase login", Toast.LENGTH_SHORT).show();
@@ -182,14 +188,17 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "printHashKey()", e);
         }
     }
-
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Profile profile = Profile.getCurrentProfile();
+        openProfileFb(profile);
+    }
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser!=null){
-            openProfile();
-        }
+    protected void onStop() {
+        super.onStop();
+        accessTokenTracker.stopTracking();
+        profileTracker.startTracking();
     }
 }
