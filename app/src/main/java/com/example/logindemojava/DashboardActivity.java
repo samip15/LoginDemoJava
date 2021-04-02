@@ -23,8 +23,7 @@ public class DashboardActivity extends AppCompatActivity {
     ImageView img;
     TextView name,email;
     Button logoutBtn;
-    private FirebaseAuth auth = FirebaseAuth.getInstance();
-    private FirebaseUser user = auth.getCurrentUser();
+    private FirebaseAuth auth;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,6 +32,13 @@ public class DashboardActivity extends AppCompatActivity {
         name = (TextView)findViewById(R.id.txtName);
         email = (TextView)findViewById(R.id.email);
         logoutBtn = (Button)findViewById(R.id.btn_log_out);
+        auth = FirebaseAuth.getInstance();
+        FirebaseUser user = auth.getCurrentUser();
+        if (user!=null){
+            name.setText(user.getDisplayName());
+            email.setText(user.getEmail());
+            Glide.with(getApplicationContext()).load(user.getPhotoUrl()).into(img);
+        }
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
         if (account!=null){
             name.setText(account.getDisplayName());
@@ -48,16 +54,12 @@ public class DashboardActivity extends AppCompatActivity {
                 finish();
             }
         });
-        if (user!=null){
-            name.setText(user.getDisplayName());
-            email.setText(user.getEmail());
-            Glide.with(getApplicationContext()).load(user.getPhotoUrl()).into(img);
-        }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+        FirebaseUser user = auth.getCurrentUser();
         if (user == null){
             startActivity(new Intent(DashboardActivity.this,MainActivity.class));
             finish();

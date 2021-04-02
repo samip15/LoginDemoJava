@@ -158,9 +158,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
                             // Sign in success, update UI with the signed-in user's information
-                            FirebaseUser user = mAuth.getCurrentUser();
-                            startActivity(new Intent(getApplicationContext(),DashboardActivity.class));
-                            finish();
+                            openProfile();
                         } else {
                             // If sign in fails, display a message to the user.
                             Toast.makeText(MainActivity.this, "problem found in firebase login", Toast.LENGTH_SHORT).show();
@@ -191,8 +189,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser!=null){
-            startActivity(new Intent(getApplicationContext(),DashboardActivity.class));
-            finish();
+            openProfile();
         }
     }
 }
